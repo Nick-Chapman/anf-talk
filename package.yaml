@@ -1,0 +1,51 @@
+name:                anf-talk
+version:             0.1.0.0
+description:         Code to accompany talk about ANF
+license:             BSD3
+author:              Nick Chapman
+maintainer:          nic@amadido.co.uk
+github:              https://github.com/Nick-Chapman/anf-talk.git
+
+extra-source-files:
+- README.md
+
+dependencies:
+- array
+- base >= 4.7 && < 5
+- containers
+- ansi-terminal
+- haskeline
+- mtl
+- time
+- transformers
+
+default-extensions:
+- BangPatterns
+- DuplicateRecordFields
+- GADTs
+- GeneralizedNewtypeDeriving
+- InstanceSigs
+- LambdaCase
+- MultiWayIf
+- NamedFieldPuns
+- NondecreasingIndentation
+- NumericUnderscores
+- RankNTypes
+- ScopedTypeVariables
+- TypeApplications
+
+ghc-options:
+- -Werror
+- -Wall
+- -Wno-name-shadowing
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+
+library:
+  source-dirs: src
+
+executables:
+  main.exe:
+    main:                app/main.hs
+    dependencies:        anf-talk
