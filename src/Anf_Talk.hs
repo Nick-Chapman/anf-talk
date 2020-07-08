@@ -1,10 +1,12 @@
 
-module Anf_Talk(
-  main,example,transformedExample,
+
+--[0]-----------------------------------------------------------------
+
+-- Module header to keep this talk type correct!
+
+module Anf_Talk (main,
   Exp(..),Anf(..),Atom(..),Oper(..),Op(..),
-  eval,evalByMachine,evalAnf,
-  translateN,
-  translate
+  eval,evalByMachine,evalAnf,translate
   ) where
 
 import qualified Data.Map.Strict as Map
@@ -14,24 +16,71 @@ import Data.Maybe (fromJust)
 main :: IO ()
 main = putStrLn "*anf-talk*"
 
+transformN = undefined transformO
+transformO = undefined transformA
 
-{-
-our running example:
+freshVar :: () -> Identifier
+freshVar = undefined
 
-  (a*b*c - d*e*f) ^2 + 1
 
-no square-op, so use multiply:
+----------------------------------------------------------------------
 
-  (a*b*c - d*e*f) * (a*b*c - d*e*f) + 1
 
-avoid repeated code with let:
+{-[1]-----------------------------------------------------------------
 
-  let x = (a*b*c - d*e*f) in x*x + 1
+-- A simple expression language:
 
-this is our running example.
--}
-example :: Exp
-example = undefined -- ELet "x" (...) (EBin Add (EBin Mul (EVar "x") (EVar "x")) (ENum 1.0))
+
+        numbers, variables, binary-ops (+) (-) (*)
+
+
+-- An example:
+
+
+        (a*b*c - d*e*f) * (a*b*c - d*e*f) + 1
+
+
+-- Add `let` construct to express shared computations
+
+
+        let x = (a*b*c - d*e*f)
+        x*x + 1
+
+
+
+
+----------------------------------------------------------------------}
+
+
+{-[2]-----------------------------------------------------------------
+
+-- Same example:
+
+
+        (a*b*c - d*e*f) * (a*b*c - d*e*f) + 1
+
+
+
+-- Going crazy with let bindings:
+
+
+        let ab = a * b
+        let abc = ab * c
+        let de = d * e
+        let def = de * f
+        let x = abc - def
+        let xx = x * x
+        xx + 1
+
+
+
+
+----------------------------------------------------------------------}
+
+
+--[3]-----------------------------------------------------------------
+
+-- AST for our simple expression language:
 
 
 type Identifier = String
@@ -46,40 +95,22 @@ data Exp
 data Op = Add | Sub | Mul
 
 
-{-
-running example, transformed by hand to ANF, by introduction of new let bindings
-
-  let ab = a * b
-  let abc = ab * c
-  let de = d * e
-  let def = de * f
-  let x = abc - def
-  let xx = x * x
-  xx + 1
--}
-transformedExample :: Anf
-transformedExample = undefined
 
 
-data Anf -- an expression in A-Normal-Form
-  = ALet Identifier Oper Anf
-  | AOper Oper
-
-data Oper -- a single binary operation; both arguments are atomic
-  = ABin Op Atom Atom
-  | AAtom Atom
-
-data Atom -- an atomic expression; the value is immediate during evlaution
-  = AVar Identifier
-  | ANum Number
+--      let x = (a*b*c - d*e*f) in x*x + 1   {- The starting example -}
 
 
-{-
-Simple (recursive) expression evaluator
--}
+
+----------------------------------------------------------------------
+
+
+--[4]-----------------------------------------------------------------
+
+-- Simple (recursive) expression evaluator
 
 type Value = Number
 type Env = Map Identifier Value -- "q"
+
 
 eval :: Env -> Exp -> Value
 eval q = \case
@@ -87,26 +118,47 @@ eval q = \case
   ENum n -> n
   EBin op e1 e2 -> evalOp op (eval q e1) (eval q e2)
   ELet x rhs body -> let v = eval q rhs in eval (Map.insert x v q) body
+  where
 
-evalOp :: Op -> Value -> Value -> Value
+
+evalOp :: Op -> Value -> Value -> Value -- (we reuse this definition later)
 evalOp = \case
   Add -> (+)
   Sub -> (-)
   Mul -> (*)
 
+----------------------------------------------------------------------
 
-{-
-Expression evaluation by "CEK" style machine. No Recursion.
-"What to do next" is made explicit by continuation component.
--}
 
-type Machine = (Control,Env,Kont)
+--[5]-----------------------------------------------------------------
+
+-- Expression evaluation by "CEK" style machine:
+
+
+-- Small step evaluator makes (cost of) recursion explicit.
+
+type Machine = (Control, Env, Kont)
+
 data Control = ControlE Exp | ControlV Value
+
+
+-- "Kont" (Continuation) = "What to do next..."
+-- And preserve the necessary informaion to do it.
+
 data Kont
   = Kdone
-  | KbinArg2 Env Op Exp Kont     -- save ARG-2 of a bin-op, while evaluating ARG-1
-  | KbinOp Value Op Kont         -- save evaluated-value of ARG-1 of a bin-op, while evaluating the ARG-2
-  | Klet Identifier Env Exp Kont -- save the BODY of a let-expression, while evaluating the RHS
+  | KbinArg2 Env Op Exp Kont     -- save bin-op's ARG-2, while evaluating ARG-1
+  | KbinOp Value Op Kont         -- save value of bin-op's ARG-1, while evaluating ARG-2
+  | Klet Identifier Env Exp Kont -- save BODY of a let-expression, while evaluating the RHS
+
+
+
+----------------------------------------------------------------------
+
+
+--[6]-----------------------------------------------------------------
+
+-- Evaluation by CEK machine
 
 evalByMachine :: Env -> Exp -> Value
 evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
@@ -115,7 +167,7 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
     run (c,q,k) = case c of
       ControlV value ->
         case k of
-          Kdone -> value -- finished!
+          Kdone -> value -- FINISHED!
           KbinArg2 q op e2 k -> run (ControlE e2, q, KbinOp value op k)
           KbinOp v1 op k -> run (ControlV (evalOp op v1 value), q, k)
           Klet x q body k  -> run (ControlE body, Map.insert x value q, k)
@@ -127,10 +179,38 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
           ELet x rhs body -> run (ControlE rhs, q, Klet x q body k)
 
 
+----------------------------------------------------------------------
 
-{-
-ANF-expression evaluation by machine. No Recursion. No continuations either!
--}
+
+--[7]-----------------------------------------------------------------
+
+-- ANF -- "A normal form"
+
+
+
+data Anf -- an expression in A-Normal-Form
+  = ALet Identifier Oper Anf
+  | AOper Oper
+
+data Oper -- a single binary operation; both arguments are atomic
+  = ABin Op Atom Atom
+  | AAtom Atom
+
+data Atom -- an atomic expression; the value is immediate during evalution
+  = AVar Identifier
+  | ANum Number
+
+
+
+
+
+
+----------------------------------------------------------------------
+
+
+--[8]-----------------------------------------------------------------
+
+--Evaluation of ANF-expressions by machine. No Recursion. No continuations either!
 
 evalAnf :: Env -> Anf -> Value
 evalAnf = run
@@ -151,49 +231,12 @@ evalAnf = run
       ANum n -> n
 
 
-
-{-
-Try (and fail) to code simple translation from Exp to Anf
--}
-
-translateN :: Exp -> Anf
-translateN = \case
-  ELet x rhs body -> ALet x (translateO rhs) (translateN body)
-  exp -> AOper (translateO exp)
-
-translateO :: Exp -> Oper
-translateO = \case
-  EVar x -> AAtom (AVar x)
-  ENum n -> AAtom (ANum n)
-  EBin op e1 e2 -> ABin op (translateA e1) (translateA e2)
-  ELet x rhs body -> do
-    let oper = translateO rhs
-    let anf = translateN body
-    let _result = ALet x oper anf
-    undefined -- PROBLEM 1
-
-translateA :: Exp -> Atom
-translateA = \case
-  EVar x -> AVar x
-  ENum n -> ANum n
-  exp -> do
-    let op = translateO exp
-    let x = freshVar()
-    let body = undefined -- PROBLEM 2
-    let _wrap = ALet x op body
-    AVar x
-
-freshVar :: () -> Identifier
-freshVar () = undefined
+----------------------------------------------------------------------
 
 
+--[9]-----------------------------------------------------------------
 
-
-{-
-Translate Exp to Anf, by coding in CPS style.
-Then the problem cases are dealt with by using the continuation parameter in
-non-tail position
--}
+-- Translation to ANF via CPS style code
 
 type Res = Anf
 type K a = (a -> Res) -> Res
@@ -202,26 +245,7 @@ translate :: Exp -> Anf
 translate exp = transformN exp $ \anf -> anf
 
 transformN :: Exp -> K Anf
-transformN exp0 k = case exp0 of
-  ELet x rhs body ->
-    transformO rhs $ \oper ->
-    transformN body $ \anf ->
-    k (ALet x oper anf)
-  exp ->
-    transformO exp $ \oper ->
-    k (AOper oper)
-
 transformO :: Exp -> K Oper
-transformO exp k = case exp of
-  EVar x -> k (AAtom (AVar x))
-  ENum n -> k (AAtom (ANum n))
-  EBin op e1 e2 ->
-    transformA e1 $ \a1 ->
-    transformA e2 $ \a2 ->
-    k (ABin op a1 a2)
-  ELet x rhs body ->
-    transformO rhs $ \oper ->
-    ALet x oper (transformO body k) -- SOLUTION 1 -- non-tail use of k
 
 transformA :: Exp -> K Atom
 transformA exp k = case exp of
@@ -230,5 +254,7 @@ transformA exp k = case exp of
   exp -> do
     transformO exp $ \oper -> do
     let x = freshVar()
-    let body = k (AVar x) -- SOLUTION 2 -- non-tail use of k
-    ALet x oper body
+    let body = k (AVar x)       -- non-tail call of `k`
+    ALet x oper body            -- allows let-binding to be wrapped around `body`
+
+----------------------------------------------------------------------
