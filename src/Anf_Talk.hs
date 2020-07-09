@@ -182,9 +182,35 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
 ----------------------------------------------------------------------
 
 
---[7]-----------------------------------------------------------------
+{-[7]-----------------------------------------------------------------
 
--- ANF -- "A normal form"
+-- ANF -- "Administrative Normal Form"
+
+
+        "The Essence of Compiling with Continuations", Flanagan et al, 1993
+                https://users.soe.ucsc.edu/~cormac/papers/pldi93.pdf
+
+
+"Only constants and variables may serve as arguments of function applications.
+ Every non-atomic expression must be bound by a let-expression or returned from a function."
+
+
+-- Here is our example again in ANF form:
+
+        let ab = a * b
+        let abc = ab * c
+        let de = d * e
+        let def = de * f
+        let x = abc - def
+        let xx = x * x
+        xx + 1
+
+----------------------------------------------------------------------}
+
+
+--[8]-----------------------------------------------------------------
+
+-- AST for A-Normal-form (capture the invariants)
 
 
 
@@ -208,7 +234,7 @@ data Atom -- an atomic expression; the value is immediate during evalution
 ----------------------------------------------------------------------
 
 
---[8]-----------------------------------------------------------------
+--[9]-----------------------------------------------------------------
 
 --Evaluation of ANF-expressions by machine. No Recursion. No continuations either!
 
@@ -234,7 +260,7 @@ evalAnf = run
 ----------------------------------------------------------------------
 
 
---[9]-----------------------------------------------------------------
+--[10]-----------------------------------------------------------------
 
 -- Translation to ANF via CPS style code
 
