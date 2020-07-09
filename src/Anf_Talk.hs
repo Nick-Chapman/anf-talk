@@ -26,9 +26,9 @@ freshVar = undefined
 ----------------------------------------------------------------------
 
 
-{-[1]-----------------------------------------------------------------
+--[1]-----------------------------------------------------------------
 
--- A simple expression language:
+{- A simple expression language:
 
 
         numbers, variables, binary-ops (+) (-) (*)
@@ -52,9 +52,9 @@ freshVar = undefined
 ----------------------------------------------------------------------}
 
 
-{-[2]-----------------------------------------------------------------
+--[2]-----------------------------------------------------------------
 
--- Same example:
+{- Same example:
 
 
         (a*b*c - d*e*f) * (a*b*c - d*e*f) + 1
@@ -118,7 +118,6 @@ eval q = \case
   ENum n -> n
   EBin op e1 e2 -> evalOp op (eval q e1) (eval q e2)
   ELet x rhs body -> let v = eval q rhs in eval (Map.insert x v q) body
-  where
 
 
 evalOp :: Op -> Value -> Value -> Value -- (we reuse this definition later)
@@ -126,6 +125,7 @@ evalOp = \case
   Add -> (+)
   Sub -> (-)
   Mul -> (*)
+
 
 ----------------------------------------------------------------------
 
@@ -182,17 +182,17 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
 ----------------------------------------------------------------------
 
 
-{-[7]-----------------------------------------------------------------
+--[7]-----------------------------------------------------------------
 
--- ANF -- "Administrative Normal Form"
+{- ANF -- "Administrative Normal Form"
 
 
         "The Essence of Compiling with Continuations", Flanagan et al, 1993
                 https://users.soe.ucsc.edu/~cormac/papers/pldi93.pdf
 
 
-"Only constants and variables may serve as arguments of function applications.
- Every non-atomic expression must be bound by a let-expression or returned from a function."
+  "Only constants and variables may serve as arguments of function applications."
+  "Every non-atomic expression must be bound by a let-expression or returned from a function."
 
 
 -- Here is our example again in ANF form:
@@ -241,7 +241,7 @@ data Atom -- an atomic expression; the value is immediate during evalution
 evalAnf :: Env -> Anf -> Value
 evalAnf = run
   where
-    run :: Env -> Anf -> Value
+    run :: Env -> Anf -> Value     -- run is an iterative process
     run q = \case
       ALet x rhs body -> let v = evalOper q rhs in run (Map.insert x v q) body
       AOper op -> evalOper q op
@@ -260,21 +260,21 @@ evalAnf = run
 ----------------------------------------------------------------------
 
 
-{--[10]-----------------------------------------------------------------
+--[10]-----------------------------------------------------------------
 
--- Function application & abstraction:
+{- Function application & abstraction, in a PURE language:
 
 
         \f -> f A B C
                                 -- curried application. Means: ((f A) B) C
 
 
--- ANF:
+-- ANF (is this ok?)
 
-        \f -> let a = A
+        \f -> let a = A         -- the order of the lets does not matter
               let b = B
               let c = C
-              f a b c
+              f a b c           -- optimized multi-argument application
 
 
 -- All good when "f" is a simple function of 3 arguments:
@@ -286,9 +286,9 @@ evalAnf = run
 ----------------------------------------------------------------------}
 
 
-{--[11]-----------------------------------------------------------------
+--[11]-----------------------------------------------------------------
 
--- But what if...
+{- But what if... we add effects, and...
 
         f == \x -> let () = effectX() in
                    \y -> let () = effectY() in
@@ -312,16 +312,16 @@ evalAnf = run
 ----------------------------------------------------------------------}
 
 
-{--[12]-----------------------------------------------------------------
+--[12]-----------------------------------------------------------------
 
--- Function THEN Argument. "left -> right"  (SML, DAML, ...)
+{- Function THEN Argument. "left -> right"  (SML, DAML, ...)
 
 
 -- (f,A,B,C as before)
 
         \f -> ((f A) B) C
 
-                        --> effects: A, X, B, Y, C      - INTERLEAVING
+                        --> effects: A, X, B, Y, C      -- Interleaving: intuitive?
 
 -- ANF (L->R, fixed)
 
@@ -338,9 +338,9 @@ evalAnf = run
 ----------------------------------------------------------------------}
 
 
-{--[13]-----------------------------------------------------------------
+--[13]-----------------------------------------------------------------
 
--- Argument THEN Function. "right -> left"  (Ocaml, Moscow ML, ...)
+{- Argument THEN Function. "right -> left"  (Ocaml, Moscow ML, ...)
 
 
 -- (f,A,B,C as before)
