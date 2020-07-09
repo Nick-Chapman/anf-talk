@@ -163,7 +163,7 @@ data Kont
 evalByMachine :: Env -> Exp -> Value
 evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
   where
-    run :: Machine -> Value
+    run :: Machine -> Value     -- run is an iterative process
     run (c,q,k) = case c of
       ControlV value ->
         case k of
@@ -321,7 +321,7 @@ evalAnf = run
 
         \f -> ((f A) B) C
 
-                        --> effects: A, X, B, Y, C
+                        --> effects: A, X, B, Y, C      - INTERLEAVING
 
 -- ANF (L->R, fixed)
 
