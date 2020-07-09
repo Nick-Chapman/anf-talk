@@ -260,7 +260,111 @@ evalAnf = run
 ----------------------------------------------------------------------
 
 
---[10]-----------------------------------------------------------------
+{--[10]-----------------------------------------------------------------
+
+-- Function application & abstraction:
+
+
+        \f -> f A B C
+                                -- curried application. Means: ((f A) B) C
+
+
+-- ANF:
+
+        \f -> let a = A
+              let b = B
+              let c = C
+              f a b c
+
+
+-- All good when "f" is a simple function of 3 arguments:
+
+        let f = \x y z -> BODY
+
+                                -- curried abstraction. Means: \x -> \y -> \z -> BODY
+
+----------------------------------------------------------------------}
+
+
+{--[11]-----------------------------------------------------------------
+
+-- But what if...
+
+        f == \x -> let () = effectX() in
+                   \y -> let () = effectY() in
+                         \z -> BODY
+
+        A == let () = effectA() in ...
+        B == let () = effectB() in ...
+        C == let () = effectC() in ...
+
+-- What order are the effects?
+
+        \f -> let a = A
+              let b = B
+              let c = C
+              f a b c
+                        --> effects: A, B, C, X, Y
+
+        \f -> f A B C
+                        --> ???
+
+----------------------------------------------------------------------}
+
+
+{--[12]-----------------------------------------------------------------
+
+-- Function THEN Argument. "left -> right"  (SML, DAML, ...)
+
+
+-- (f,A,B,C as before)
+
+        \f -> ((f A) B) C
+
+                        --> effects: A, X, B, Y, C
+
+-- ANF (L->R, fixed)
+
+
+        \f -> let a = A
+              let fa = f a              -- Sad :(
+              let b = B
+              let fab = fa b            -- Sad again :(
+              let c = C
+              fab c
+
+                        --> effects: A, X, B, Y, C
+
+----------------------------------------------------------------------}
+
+
+{--[13]-----------------------------------------------------------------
+
+-- Argument THEN Function. "right -> left"  (Ocaml, Moscow ML, ...)
+
+
+-- (f,A,B,C as before)
+
+        \f -> ((f A) B) C
+
+                        --> effects: C, B, A, X, Y
+
+-- ANF (R->L)
+
+
+        \f -> let c = C
+              let b = B
+              let a = A
+              f a b c
+
+                        --> effects: C, B, A, X, Y
+
+
+
+----------------------------------------------------------------------}
+
+
+--[14]-----------------------------------------------------------------
 
 -- Translation to ANF via CPS style code
 
