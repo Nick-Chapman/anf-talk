@@ -22,7 +22,6 @@ transformO = undefined transformA
 freshVar :: () -> Identifier
 freshVar = undefined
 
-
 ----------------------------------------------------------------------
 
 
@@ -45,7 +44,6 @@ freshVar = undefined
 
         let x = (a*b*c - d*e*f)
         x*x + 1
-
 
 
 
@@ -74,7 +72,6 @@ freshVar = undefined
 
 
 
-
 ----------------------------------------------------------------------}
 
 
@@ -98,7 +95,6 @@ data Op = Add | Sub | Mul
 
 
 --      let x = (a*b*c - d*e*f) in x*x + 1   {- The starting example -}
-
 
 
 ----------------------------------------------------------------------
@@ -126,7 +122,6 @@ evalOp = \case
   Sub -> (-)
   Mul -> (*)
 
-
 ----------------------------------------------------------------------
 
 
@@ -150,7 +145,6 @@ data Kont
   | KbinArg2 Env Op Exp Kont     -- save bin-op's ARG-2, while evaluating ARG-1
   | KbinOp Value Op Kont         -- save value of bin-op's ARG-1, while evaluating ARG-2
   | Klet Identifier Env Exp Kont -- save BODY of a let-expression, while evaluating the RHS
-
 
 
 ----------------------------------------------------------------------
@@ -178,7 +172,6 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
           EBin op e1 e2 -> run (ControlE e1, q, KbinArg2 q op e2 k)
           ELet x rhs body -> run (ControlE rhs, q, Klet x q body k)
 
-
 ----------------------------------------------------------------------
 
 
@@ -204,7 +197,6 @@ evalByMachine q0 exp0 = run (ControlE exp0, q0, Kdone)
         let x = abc - def
         let xx = x * x
         xx + 1
-
 ----------------------------------------------------------------------}
 
 
@@ -225,7 +217,6 @@ data Oper -- a single binary operation; both arguments are atomic
 data Atom -- an atomic expression; the value is immediate during evalution
   = AVar Identifier
   | ANum Number
-
 
 
 
@@ -256,7 +247,6 @@ evalAnf = run
       AVar x -> fromJust $ Map.lookup x q
       ANum n -> n
 
-
 ----------------------------------------------------------------------
 
 
@@ -282,7 +272,6 @@ evalAnf = run
         let f = \x y z -> BODY
 
                                 -- curried abstraction. Means: \x -> \y -> \z -> BODY
-
 ----------------------------------------------------------------------}
 
 
@@ -308,7 +297,6 @@ evalAnf = run
 
         \f -> f A B C
                         --> ???
-
 ----------------------------------------------------------------------}
 
 
@@ -334,7 +322,6 @@ evalAnf = run
               fab c
 
                         --> effects: A, X, B, Y, C
-
 ----------------------------------------------------------------------}
 
 
@@ -358,7 +345,6 @@ evalAnf = run
               f a b c
 
                         --> effects: C, B, A, X, Y
-
 
 
 ----------------------------------------------------------------------}
@@ -386,5 +372,4 @@ transformA exp k = case exp of
     let x = freshVar()
     let body = k (AVar x)       -- non-tail call of `k`
     ALet x oper body            -- allows let-binding to be wrapped around `body`
-
 ----------------------------------------------------------------------
