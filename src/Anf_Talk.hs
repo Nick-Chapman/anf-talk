@@ -143,7 +143,7 @@ data Control = ControlE Exp | ControlV Value
 
 
 -- "Kont" (Continuation) = "What to do next..."
--- And preserve the necessary informaion to do it.
+-- And preserve the necessary information to do it.
 
 data Kont
   = Kdone
